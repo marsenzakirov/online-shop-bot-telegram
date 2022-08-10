@@ -58,7 +58,7 @@ bot.start(async (ctx) => {
 
   //check admin status
   if (user.isAdmin) {
-    ctx.scene.enter("adminWizzard");
+    ctx.scene.enter("adminWizard");
   } else {
     menu(ctx);
   }
