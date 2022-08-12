@@ -22,7 +22,7 @@ const texts = {
       },
       {
         title: "Добавить нового администратора",
-        callback: "AddAdmin",
+        callback: "addAdmin",
       },
       {
         title: "Просмотреть от лица покупателя",
