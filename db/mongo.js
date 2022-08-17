@@ -1,8 +1,8 @@
 const { MongoClient } = require("mongodb");
 
-const client = new MongoClient(
-  "mongodb+srv://marsen:marsen12@cluster0.zqiez6t.mongodb.net/?retryWrites=true&w=majority"
-);
+require("dotenv").config();
+
+const client = new MongoClient(process.env.MONGO_TOKEN);
 
 try {
   client.connect();
@@ -11,7 +11,9 @@ try {
   const users = client.db("shop").collection("users");
   const orders = client.db("shop").collection("orders");
   const cart = client.db("shop").collection("cart");
-  module.exports = { items, categories, users, orders, cart };
+  const counter = client.db("shop").collection("counter");
+
+  module.exports = { items, categories, users, orders, cart, counter };
 } catch (error) {
   console.log(error);
 }
