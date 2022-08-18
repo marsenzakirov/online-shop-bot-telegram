@@ -4,15 +4,17 @@ const { adminMenu, buyerView } = require("../../texts/texts");
 const adminAction = new Composer();
 
 adminAction.action("addItem", async (ctx) => {
-  console.log("addItem");
-
   ctx.scene.enter("addItemWizard");
+});
+
+adminAction.action("addCategory", async (ctx) => {
+  ctx.scene.enter("addCategoryWizard");
 });
 
 adminAction.action("DeleteItem", async (ctx) => {});
 
-adminAction.action("addAdmin", async (ctx) => {
-  ctx.scene.enter("addAdminWizard");
+adminAction.action("itemsMenu", async (ctx) => {
+  ctx.scene.enter("itemsMenuWizard");
 });
 
 adminAction.action("backAdmin", async (ctx) => {

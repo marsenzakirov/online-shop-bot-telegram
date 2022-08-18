@@ -1,13 +1,12 @@
 const { Telegraf, Scenes, session, Markup, Composer } = require("telegraf");
-const axios = require("axios");
-const fs = require("fs");
 const needle = require("needle");
-const { upload } = require("../../db/yandex");
+const { upload } = require("../../../db/yandex");
 
 const backAdmin = new Composer();
 const addPhoto = new Composer();
 const addTitle = new Composer();
 const addDescription = new Composer();
+const addSize = new Composer();
 const addPrice = new Composer();
 const confirmItem = new Composer();
 const changeItem = new Composer();
@@ -40,13 +39,57 @@ addTitle.on("text", async (ctx) => {
 });
 addDescription.on("text", async (ctx) => {
   item.description = ctx.message.text;
-  ctx.reply("Введите цену товара");
+  ctx.reply(
+    "Введите размер товара, а затем его размер\nример: рамзер:количество \n пример нескольких размеров: 12:2,13:14,15:6"
+  );
   return ctx.wizard.next();
 });
+
+addSize.on("text", async (ctx) => {
+  msg = ctx.message.text;
+  console.log(msg);
+  try {
+    if (!msg.match(/[a-z]/i)) {
+      obj = ctx.message.text.split(",").reduce((acc, cur) => {
+        let [key, value] = cur.split(":");
+        if (acc[key]) {
+          return "error";
+        }
+        if (
+          !isNaN(parseInt(value)) &&
+          parseInt(value) >= 0 &&
+          !isNaN(parseInt(key)) &&
+          parseInt(key) >= 0
+        ) {
+          acc[parseInt(key)] = parseInt(value);
+          return acc;
+        } else {
+          return "error";
+        }
+      }, {});
+      if (obj == "error") {
+        ctx.reply("Вы ввели неправильные данные, попробуйте еще раз");
+      } else {
+        item.size = obj;
+        ctx.reply("Введите цену товара");
+        return ctx.wizard.next();
+      }
+    } else {
+      ctx.reply("Вы ввели неправильные данныеa, попробуйте еще раз");
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
 addPrice.on("text", async (ctx) => {
-  if (!isNaN(parseInt(ctx.update.message.text))) {
+  if (
+    !isNaN(parseInt(ctx.update.message.text)) &&
+    parseInt(ctx.update.message.text) > 0
+  ) {
     item.price = parseInt(ctx.update.message.text);
     ctx.scene.enter("confirmItem");
+  } else if (parseInt(ctx.update.message.text) <= 0) {
+    ctx.reply("Цена должна быть больше 0");
   } else {
     ctx.reply("Введите число");
   }
@@ -57,14 +100,15 @@ backAdmin.action("backAdmin", async (ctx) => {
 });
 
 confirmItem.action("confirmItem", async (ctx) => {
-  const { items } = require("../../db/mongo");
+  const { items } = require("../../../db/mongo");
   await items.insertOne(item);
   await ctx.reply("Товар добавлен");
-  ctx.scene.enter("adminWizard");
+  ctx.session.item = item;
+  ctx.scene.enter("sendItemOnChannelWizard");
 });
 
-confirmItem.action("backConfirm", async (ctx) => {
-  ctx.scene.enter("confirmItem");
+confirmItem.action("cancelItem", async (ctx) => {
+  ctx.scene.enter("adminWizard");
 });
 
 confirmItem.action("changeItem", async (ctx) => {
@@ -87,14 +131,14 @@ changeItem.on("callback_query", async (ctx) => {
   }
   if (ctx.update.callback_query.data == "changeDescription") {
     ctx.reply("Введите новое описание");
-    ctx.wizard.next("changeDescription");
+    ctx.scene.enter("changeDescription");
   }
   if (ctx.update.callback_query.data == "changePrice") {
     ctx.reply("Введите новую цену");
     ctx.scene.enter("changePrice");
   }
-  if (ctx.update.callback_query.data == "cancelItem") {
-    ctx.scene.enter("adminWizard");
+  if (ctx.update.callback_query.data == "backConfirm") {
+    ctx.scene.enter("confirmItem");
   }
 });
 
@@ -107,6 +151,7 @@ const addItemScene = new Scenes.WizardScene(
   addPhoto,
   addTitle,
   addDescription,
+  addSize,
   addPrice
 );
 const confirmItemScene = new Scenes.WizardScene(
